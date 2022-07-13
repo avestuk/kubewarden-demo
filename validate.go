@@ -47,16 +47,40 @@ func validate(payload []byte) ([]byte, error) {
 		e.String("namespace", pod.Metadata.Namespace)
 	})
 
-	if settings.IsNameDenied(pod.Metadata.Name) {
-		logger.InfoWithFields("rejecting pod object", func(e onelog.Entry) {
-			e.String("name", pod.Metadata.Name)
-			e.String("denied_names", strings.Join(settings.DeniedNames, ","))
-		})
+	// If the pod is not using host network then we can accept the request
+	if !pod.Spec.HostNetwork {
+		return kubewarden.AcceptRequest()
+	}
 
-		return kubewarden.RejectRequest(
-			kubewarden.Message(
-				fmt.Sprintf("The '%s' name is on the deny list", pod.Metadata.Name)),
-			kubewarden.NoCode)
+	// Collect all the container registries that all the containers in the
+	// pod are using.
+	containerRegistries := make(map[string]int)
+	for _, c := range pod.Spec.InitContainers {
+		registry := strings.Split(c.Image, ":")[0]
+		if _, ok := containerRegistries[registry]; !ok {
+			containerRegistries[registry] = 1
+		}
+	}
+
+	for _, c := range pod.Spec.Containers {
+		registry := strings.Split(c.Image, ":")[0]
+		if _, ok := containerRegistries[registry]; !ok {
+			containerRegistries[registry] = 1
+		}
+	}
+
+	for containerRegistry := range containerRegistries {
+		if !settings.ContainerRegistries.Contains(containerRegistry) {
+			logger.InfoWithFields("rejecting pod object", func(e onelog.Entry) {
+				e.String("name", pod.Metadata.Name)
+				e.String("unauthorized_registry", containerRegistry)
+			})
+
+			return kubewarden.RejectRequest(
+				kubewarden.Message(
+					fmt.Sprintf("pod '%s' uses host networking and uses an image: %s that is not from an authorized registry", pod.Metadata.Name, containerRegistry)),
+				kubewarden.NoCode)
+		}
 	}
 
 	return kubewarden.AcceptRequest()

@@ -1,3 +1,9 @@
+# github.com/davecgh/go-spew v1.1.1
+## explicit
+github.com/davecgh/go-spew/spew
+# github.com/deckarep/golang-set v1.8.0
+## explicit; go 1.17
+github.com/deckarep/golang-set
 # github.com/francoispqt/gojay v0.0.0-20181220093123-f2cc13a668ca
 ## explicit
 github.com/francoispqt/gojay
@@ -28,6 +34,13 @@ github.com/mailru/easyjson
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
+# github.com/pmezard/go-difflib v1.0.0
+## explicit
+github.com/pmezard/go-difflib/difflib
+# github.com/stretchr/testify v1.2.2
+## explicit
+github.com/stretchr/testify/assert
+github.com/stretchr/testify/require
 # github.com/wapc/wapc-guest-tinygo v0.3.1
 ## explicit; go 1.15
 github.com/wapc/wapc-guest-tinygo

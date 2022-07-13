@@ -1,40 +1,37 @@
 package main
 
 import (
-	"github.com/mailru/easyjson"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestParsingSettingsWithNoValueProvided(t *testing.T) {
-	rawSettings := []byte(`{}`)
-	settings := &Settings{}
-	if err := easyjson.Unmarshal(rawSettings, settings); err != nil {
-		t.Errorf("Unexpected error %+v", err)
-	}
+func TestParseValidSettings(t *testing.T) {
+	settingsJSON := []byte(`
+	    {
+	        "container_registries": [ "harbor.ci.nutmeg.co.uk/dockerhub/falcosecurity/falco", "602401143452.dkr.ecr.eu-west-1.amazonaws.com/eks" ]
+	    }`)
 
-	if len(settings.DeniedNames) != 0 {
-		t.Errorf("Expecpted DeniedNames to be empty")
-	}
+	settings, err := newSettings(settingsJSON)
+	require.NoError(t, err)
 
-	valid, err := settings.Valid()
-	if !valid {
-		t.Errorf("Settings are reported as not valid")
-	}
-	if err != nil {
-		t.Errorf("Unexpected error %+v", err)
+	expected_registries := []string{"harbor.ci.nutmeg.co.uk/dockerhub/falcosecurity/falco", "602401143452.dkr.ecr.eu-west-1.amazonaws.com/eks"}
+	for _, expected_registry := range expected_registries {
+		require.Truef(t, settings.ContainerRegistries.Contains(expected_registry), "did not find: %s, in: %s", expected_registry, settings.ContainerRegistries.String())
 	}
 }
 
-func TestIsNameDenied(t *testing.T) {
-	settings := Settings{
-		DeniedNames: []string{"bob"},
-	}
+func TestParseInvalidSettings(t *testing.T) {
+	settingsJSON := []byte(`
+	    {
+	        "container_registries": []
+	    }`)
 
-	if !settings.IsNameDenied("bob") {
-		t.Errorf("name should be denied")
-	}
+	settings, err := newSettings(settingsJSON)
+	require.NoError(t, err)
 
-	if settings.IsNameDenied("alice") {
-		t.Errorf("name should not be denied")
-	}
+	isValid, err := settings.Valid()
+	assert.False(t, isValid)
+	require.Error(t, err)
 }
