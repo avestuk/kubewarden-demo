@@ -47,8 +47,8 @@ func validate(payload []byte) ([]byte, error) {
 		e.String("namespace", pod.Metadata.Namespace)
 	})
 
-	// If the pod is not using host network then we can accept the request
-	if !pod.Spec.HostNetwork {
+	// If there are no hostShennanigans we can accept the request
+	if hostShennanigans(pod) == 0 {
 		return kubewarden.AcceptRequest()
 	}
 
@@ -69,19 +69,50 @@ func validate(payload []byte) ([]byte, error) {
 		}
 	}
 
+	// Validate whether unauthorized containers are being used in conjuction with hostPaths/hostNetworking
 	for containerRegistry := range containerRegistries {
 		if !settings.ContainerRegistries.Contains(containerRegistry) {
 			logger.InfoWithFields("rejecting pod object", func(e onelog.Entry) {
 				e.String("name", pod.Metadata.Name)
 				e.String("unauthorized_registry", containerRegistry)
+				// TODO String Method on hostType for nicer conversion back
+				e.Int("host thing", hostShennanigans(pod))
 			})
 
 			return kubewarden.RejectRequest(
 				kubewarden.Message(
-					fmt.Sprintf("pod '%s' uses host networking and uses an image: %s that is not from an authorized registry", pod.Metadata.Name, containerRegistry)),
+					fmt.Sprintf("pod '%s' uses hostPath volumes and uses an image: %s that is not from an authorized registry", pod.Metadata.Name, containerRegistry)),
 				kubewarden.NoCode)
 		}
 	}
 
 	return kubewarden.AcceptRequest()
+}
+
+const (
+	hostNetwork int = iota + 1
+	hostIPC
+	hostPID
+	hostPath
+)
+
+func hostShennanigans(pod *corev1.Pod) int {
+	if pod.Spec.HostNetwork {
+		return hostNetwork
+	}
+
+	if pod.Spec.HostIPC {
+		return hostIPC
+	}
+
+	if pod.Spec.HostPID {
+		return hostPID
+	}
+
+	for _, v := range pod.Spec.Volumes {
+		if v.HostPath != nil {
+			return hostPath
+		}
+	}
+	return 0
 }
