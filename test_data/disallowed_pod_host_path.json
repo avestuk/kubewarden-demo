@@ -20,13 +20,24 @@
             "containers": [
                 {
                     "name": "pause",
-                    "image": "safe/yes",
-                    "securityContext": {
-                        "privileged": true
+                    "image": "fsb/notnotpetyaiswear",
+                    "volumeMounts": [
+                    {
+                        "mountPath": "/host/opt/cni/bin",
+                        "name": "cni-bin-dir"
                     }
+                    ]
                 }
             ],
-            "hostNetwork": true
+            "volumes": [
+            {
+                "hostPath": {
+                    "path": "/opt/cni/bin",
+                    "type": ""
+                },
+                "name": "cni-bin-dir"
+            }
+            ]
         }
     }
 }

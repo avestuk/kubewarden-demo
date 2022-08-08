@@ -20,7 +20,7 @@
             "containers": [
                 {
                     "name": "pause",
-                    "image": "safe/yes",
+                    "image": "fsb/totallynotnotpetya",
                     "securityContext": {
                         "privileged": true
                     }

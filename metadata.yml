@@ -7,13 +7,13 @@ mutating: false
 contextAware: false
 executionMode: kubewarden-wapc
 annotations:
-  io.kubewarden.policy.title: policy-name
-  io.kubewarden.policy.description: Short description
-  io.kubewarden.policy.author: policy-author
+  io.kubewarden.policy.title: privileged-for-some
+  io.kubewarden.policy.description: Only allow certain container images to use host resources
+  io.kubewarden.policy.author: Engineering-Efficiency
   io.kubewarden.policy.url: https://github.com/yourorg/policy-name
   io.kubewarden.policy.source: https://github.com/yourorg/policy-name
   io.kubewarden.policy.license: Apache-2.0
   io.kubewarden.policy.usage: |
-    Long explaination.
+    Only allows containers specified in container_registries to use host resources or to run as privileged. 
 
-    **Note well:** this can be Markdown text
+

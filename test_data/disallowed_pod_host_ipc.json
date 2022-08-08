@@ -20,13 +20,10 @@
             "containers": [
                 {
                     "name": "pause",
-                    "image": "safe/yes",
-                    "securityContext": {
-                        "privileged": true
-                    }
+                    "image": "fsb/notnotpetyaiswear"
                 }
             ],
-            "hostNetwork": true
+            "hostIPC": true
         }
     }
 }

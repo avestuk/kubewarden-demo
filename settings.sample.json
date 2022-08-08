@@ -1,5 +1,5 @@
 {
-  "denied_names": [
-    "tls-example-ingress"
+  "container_registries": [
+    "safe/yes"
   ]
 }
