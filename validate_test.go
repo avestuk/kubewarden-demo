@@ -15,6 +15,8 @@ func TestValidateContainerRegistry(t *testing.T) {
 	cases := map[string]struct {
 		containerRegistries    []string
 		podContainerRegistries []string
+		hostShennanigan        bool
+		hostShennaniganType    hostShennanigan
 		expectedIsValid        bool
 	}{
 		"valid registries": {
@@ -25,6 +27,76 @@ func TestValidateContainerRegistry(t *testing.T) {
 		"invalid registries": {
 			containerRegistries:    []string{"foo", "bar"},
 			podContainerRegistries: []string{"baz", "bat"},
+			expectedIsValid:        true,
+		},
+		"invalid registries with host network": {
+			containerRegistries:    []string{"foo", "bar"},
+			podContainerRegistries: []string{"baz", "bat"},
+			hostShennanigan:        true,
+			hostShennaniganType:    hostNetwork,
+			expectedIsValid:        false,
+		},
+		"invalid registries with host IPC": {
+			containerRegistries:    []string{"foo", "bar"},
+			podContainerRegistries: []string{"baz", "bat"},
+			hostShennanigan:        true,
+			hostShennaniganType:    hostIPC,
+			expectedIsValid:        false,
+		},
+		"invalid registries with host PID": {
+			containerRegistries:    []string{"foo", "bar"},
+			podContainerRegistries: []string{"baz", "bat"},
+			hostShennanigan:        true,
+			hostShennaniganType:    hostPID,
+			expectedIsValid:        false,
+		},
+		"invalid registries with host path": {
+			containerRegistries:    []string{"foo", "bar"},
+			podContainerRegistries: []string{"baz", "bat"},
+			hostShennanigan:        true,
+			hostShennaniganType:    hostPath,
+			expectedIsValid:        false,
+		},
+		"invalid registries with privileged container": {
+			containerRegistries:    []string{"foo", "bar"},
+			podContainerRegistries: []string{"baz", "bat"},
+			hostShennanigan:        true,
+			hostShennaniganType:    privilegedContainer,
+			expectedIsValid:        false,
+		},
+		"valid registries with host network": {
+			containerRegistries:    []string{"foo", "bar"},
+			podContainerRegistries: []string{"foo", "bar"},
+			hostShennanigan:        true,
+			hostShennaniganType:    hostNetwork,
+			expectedIsValid:        true,
+		},
+		"valid registries with host IPC": {
+			containerRegistries:    []string{"foo", "bar"},
+			podContainerRegistries: []string{"foo", "bar"},
+			hostShennanigan:        true,
+			hostShennaniganType:    hostIPC,
+			expectedIsValid:        true,
+		},
+		"valid registries with host PID": {
+			containerRegistries:    []string{"foo", "bar"},
+			podContainerRegistries: []string{"foo", "bar"},
+			hostShennanigan:        true,
+			hostShennaniganType:    hostPID,
+			expectedIsValid:        true,
+		},
+		"valid registries with host path": {
+			containerRegistries:    []string{"foo", "bar"},
+			podContainerRegistries: []string{"foo", "bar"},
+			hostShennanigan:        true,
+			hostShennaniganType:    hostPath,
+			expectedIsValid:        true,
+		},
+		"valid registries with privileged container": {
+			containerRegistries:    []string{"foo", "bar"},
+			podContainerRegistries: []string{"foo", "bar"},
+			hostShennanigan:        true,
+			hostShennaniganType:    privilegedContainer,
 			expectedIsValid:        true,
 		},
 	}
@@ -52,6 +124,29 @@ func TestValidateContainerRegistry(t *testing.T) {
 				},
 			}
 
+			if settings.hostShennanigan {
+				switch settings.hostShennaniganType {
+				case hostNetwork:
+					pod.Spec.HostNetwork = true
+				case hostIPC:
+					pod.Spec.HostIPC = true
+				case hostPID:
+					pod.Spec.HostPID = true
+				case hostPath:
+					hostPath := "/sys"
+					pod.Spec.Volumes = append(pod.Spec.Volumes, &corev1.Volume{
+						HostPath: &corev1.HostPathVolumeSource{
+							Path: &hostPath,
+						},
+					})
+				case privilegedContainer:
+					t.Logf("pod containers:\n %#v", pod.Spec.Containers)
+					pod.Spec.Containers[0].SecurityContext = &corev1.SecurityContext{
+						Privileged: true,
+					}
+				}
+			}
+
 			payload, err := kubewarden_testing.BuildValidationRequest(&pod, &basicSettings)
 			require.NoError(t, err)
 
@@ -69,4 +164,21 @@ func TestValidateContainerRegistry(t *testing.T) {
 
 		})
 	}
+}
+
+func TestShennaniganString(t *testing.T) {
+	expected := []string{
+		"",
+		"hostNetwork",
+		"hostIPC",
+		"hostPID",
+		"hostPath",
+		"privilegedContainer",
+	}
+
+	for i := 1; i >= int(privilegedContainer); i++ {
+		h := hostShennanigan(i)
+		require.Equal(t, expected[i], h.String())
+	}
+
 }

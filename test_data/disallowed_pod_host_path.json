@@ -1,0 +1,43 @@
+{
+    "uid": "1299d386-525b-4032-98ae-1949f69f9cfc",
+    "kind": {
+        "group": "",
+        "kind": "Pod",
+        "version": "v1"
+    },
+    "object": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "metadata": {
+            "name": "test-pod",
+            "namespace": "default",
+            "labels": {
+                "cc-center": "123",
+                "owner": "team-alpha"
+            }
+        },
+        "spec": {
+            "containers": [
+                {
+                    "name": "pause",
+                    "image": "fsb/notnotpetyaiswear",
+                    "volumeMounts": [
+                    {
+                        "mountPath": "/host/opt/cni/bin",
+                        "name": "cni-bin-dir"
+                    }
+                    ]
+                }
+            ],
+            "volumes": [
+            {
+                "hostPath": {
+                    "path": "/opt/cni/bin",
+                    "type": ""
+                },
+                "name": "cni-bin-dir"
+            }
+            ]
+        }
+    }
+}

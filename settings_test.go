@@ -8,15 +8,15 @@ import (
 )
 
 func TestParseValidSettings(t *testing.T) {
+	expected_registries := []string{"foo", "bar"}
 	settingsJSON := []byte(`
 	    {
-	        "container_registries": [ "harbor.ci.nutmeg.co.uk/dockerhub/falcosecurity/falco", "602401143452.dkr.ecr.eu-west-1.amazonaws.com/eks" ]
+	        "container_registries": [ "foo", "bar" ]
 	    }`)
 
 	settings, err := newSettings(settingsJSON)
 	require.NoError(t, err)
 
-	expected_registries := []string{"harbor.ci.nutmeg.co.uk/dockerhub/falcosecurity/falco", "602401143452.dkr.ecr.eu-west-1.amazonaws.com/eks"}
 	for _, expected_registry := range expected_registries {
 		require.Truef(t, settings.ContainerRegistries.Contains(expected_registry), "did not find: %s, in: %s", expected_registry, settings.ContainerRegistries.String())
 	}

@@ -48,7 +48,8 @@ func validate(payload []byte) ([]byte, error) {
 	})
 
 	// If there are no hostShennanigans we can accept the request
-	if hostShennanigans(pod) == 0 {
+	h := hostShennanigans(pod)
+	if h == 0 {
 		return kubewarden.AcceptRequest()
 	}
 
@@ -75,13 +76,12 @@ func validate(payload []byte) ([]byte, error) {
 			logger.InfoWithFields("rejecting pod object", func(e onelog.Entry) {
 				e.String("name", pod.Metadata.Name)
 				e.String("unauthorized_registry", containerRegistry)
-				// TODO String Method on hostType for nicer conversion back
-				e.Int("host thing", hostShennanigans(pod))
+				e.String("host shennanigans not allowed: ", h.String())
 			})
 
 			return kubewarden.RejectRequest(
 				kubewarden.Message(
-					fmt.Sprintf("pod '%s' uses hostPath volumes and uses an image: %s that is not from an authorized registry", pod.Metadata.Name, containerRegistry)),
+					fmt.Sprintf("pod '%s' uses %s and uses an image: %s that is not from an authorized registry", pod.Metadata.Name, h.String(), containerRegistry)),
 				kubewarden.NoCode)
 		}
 	}
@@ -89,14 +89,28 @@ func validate(payload []byte) ([]byte, error) {
 	return kubewarden.AcceptRequest()
 }
 
+type hostShennanigan int
+
+func (h *hostShennanigan) String() string {
+	return [...]string{
+		"",
+		"hostNetwork",
+		"hostIPC",
+		"hostPID",
+		"hostPath",
+		"privilegedContainer",
+	}[*h]
+}
+
 const (
-	hostNetwork int = iota + 1
+	hostNetwork hostShennanigan = iota + 1
 	hostIPC
 	hostPID
 	hostPath
+	privilegedContainer
 )
 
-func hostShennanigans(pod *corev1.Pod) int {
+func hostShennanigans(pod *corev1.Pod) hostShennanigan {
 	if pod.Spec.HostNetwork {
 		return hostNetwork
 	}
@@ -112,6 +126,12 @@ func hostShennanigans(pod *corev1.Pod) int {
 	for _, v := range pod.Spec.Volumes {
 		if v.HostPath != nil {
 			return hostPath
+		}
+	}
+
+	for _, c := range pod.Spec.Containers {
+		if c.SecurityContext != nil && c.SecurityContext.Privileged {
+			return privilegedContainer
 		}
 	}
 	return 0
